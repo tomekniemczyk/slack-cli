@@ -9,6 +9,7 @@ const { login } = require('./src/auth');
 const { getMentions } = require('./src/mentions');
 const { markAllRead } = require('./src/markread');
 const { replyToMessage, readThread } = require('./src/reply');
+const { startDaemon } = require('./src/daemon');
 
 const { execFileSync } = require('child_process');
 const path = require('path');
@@ -186,6 +187,36 @@ program
       }
     } catch (err) {
       console.error(`❌ Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('agent-start <channels...>')
+  .description('Start AI daemon: monitors channels, proposes AI replies, waits for your approval')
+  .option('-i, --interval <seconds>', 'Polling interval in seconds', '10')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  slackcli agent-start general review
+  slackcli agent-start review --interval 30
+
+The daemon will:
+  1. Poll specified channels every N seconds
+  2. For each new message, generate an AI response using gh copilot
+  3. If a GitHub PR link is detected, generate a full code review
+  4. Show the proposal and ask: [y] Send  [n] Skip  [e] Edit  [s] Stop
+  5. Only send if you approve
+
+State is saved to ~/.slack-agent-state.json
+`
+  )
+  .action(async (channels, options) => {
+    try {
+      await startDaemon(channels, { interval: parseInt(options.interval, 10) });
+    } catch (err) {
+      console.error(`❌ Agent error: ${err.message}`);
       process.exit(1);
     }
   });
