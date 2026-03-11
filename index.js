@@ -10,6 +10,7 @@ const { getMentions } = require('./src/mentions');
 const { markAllRead } = require('./src/markread');
 const { replyToMessage, readThread } = require('./src/reply');
 const { startDaemon } = require('./src/daemon');
+const { loadHistory } = require('./src/agent');
 
 const { execFileSync } = require('child_process');
 const path = require('path');
@@ -184,6 +185,34 @@ program
       if (errors.length > 0) {
         console.log(`⚠️  Błędy (${errors.length}):`);
         errors.forEach((e) => console.log(`   #${e.channel}: ${e.error}`));
+      }
+    } catch (err) {
+      console.error(`❌ Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('agent-history <channel>')
+  .description('Show saved AI conversation history for a channel')
+  .option('-l, --limit <number>', 'Number of entries to show', '20')
+  .action(async (channel, options) => {
+    try {
+      const channelId = await resolveChannelId(channel);
+      const history = loadHistory(channelId).slice(-parseInt(options.limit, 10));
+      if (history.length === 0) {
+        console.log(`No conversation history for #${channel}.`);
+        return;
+      }
+      console.log(`\n💬 Historia konwersacji #${channel} (${history.length} wpisów):\n`);
+      for (const e of history) {
+        const ts = e.ts ? new Date(parseFloat(e.ts) * 1000).toLocaleString('pl-PL') : '';
+        const label =
+          e.role === 'assistant' ? '\x1b[33m[AI draft]\x1b[0m' :
+          e.role === 'sent'      ? '\x1b[32m[sent]\x1b[0m' :
+                                   `\x1b[36m[${e.user ?? 'user'}]\x1b[0m`;
+        console.log(`${label} \x1b[2m${ts}\x1b[0m`);
+        console.log(`  ${e.text}\n`);
       }
     } catch (err) {
       console.error(`❌ Error: ${err.message}`);

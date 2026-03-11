@@ -8,7 +8,7 @@ const { execSync } = require('child_process');
 const { getClient } = require('./client');
 const { resolveChannelId } = require('./read');
 const { replyToMessage } = require('./reply');
-const { askAgent } = require('./agent');
+const { askAgent, askAgentWithHistory, appendHistory } = require('./agent');
 
 const STATE_FILE = path.join(process.env.HOME, '.slack-agent-state.json');
 const POLL_INTERVAL_MS = 10000;
@@ -93,10 +93,9 @@ async function processMessage(msg, channelName, channelId) {
     process.stdout.write('\r\x1b[K');
 
     if (prCtx) {
-      process.stdout.write(`🤖 Generuję code review...`);
-      const reviewPrompt = [
+      process.stdout.write(`🤖 Generuję code review (z historią kanału)...`);
+      const extraContext = [
         'You are a senior software engineer doing a thorough code review.',
-        'Review the pull request below and provide concise, constructive feedback.',
         'Focus on: bugs, security issues, performance, readability, and best practices.',
         'Be specific and actionable. Format as a Slack message with bullet points.',
         '',
@@ -109,23 +108,14 @@ async function processMessage(msg, channelName, channelId) {
         prCtx.diff,
       ].join('\n');
 
-      proposal = askAgent(reviewPrompt);
+      proposal = askAgentWithHistory(channelId, channelName, msg, extraContext);
       process.stdout.write('\r\x1b[K');
     }
   }
 
   if (!proposal) {
-    process.stdout.write(`🤖 Generuję odpowiedź...`);
-    const replyPrompt = [
-      'You are helping craft a reply to a Slack message on behalf of the user.',
-      `Channel: #${channelName}`,
-      `Message from ${msg.user}: "${msg.text}"`,
-      '',
-      'Write a helpful, professional and concise Slack reply.',
-      'Be natural — short if appropriate, detailed only if needed.',
-      'Do NOT include any preamble like "Here is a reply:" — only the reply text itself.',
-    ].join('\n');
-    proposal = askAgent(replyPrompt);
+    process.stdout.write(`🤖 Generuję odpowiedź (z historią kanału)...`);
+    proposal = askAgentWithHistory(channelId, channelName, msg);
     process.stdout.write('\r\x1b[K');
   }
 
@@ -136,11 +126,14 @@ async function processMessage(msg, channelName, channelId) {
 
   if (answer === 'y' || answer === 'Y') {
     await replyToMessage(channelId, msg.ts, proposal);
+    // Record sent reply to history
+    appendHistory(channelId, { role: 'sent', user: 'you', text: proposal, ts: String(Date.now() / 1000) });
     console.log(`✅ Wysłano!`);
   } else if (answer === 'e' || answer === 'E') {
     const custom = await ask(`Twoja wiadomość: `);
     if (custom) {
       await replyToMessage(channelId, msg.ts, custom);
+      appendHistory(channelId, { role: 'sent', user: 'you', text: custom, ts: String(Date.now() / 1000) });
       console.log(`✅ Wysłano!`);
     } else {
       console.log(`⏭️  Pominięto (brak tekstu)`);
