@@ -11,7 +11,10 @@ async function readMessages(channel, limit = 10) {
   return result.messages.map((msg) => ({
     user: msg.user || msg.bot_id || 'unknown',
     text: msg.text,
-    ts: new Date(parseFloat(msg.ts) * 1000).toLocaleString(),
+    ts: msg.ts,                                              // raw slack ts (for replies)
+    displayTs: new Date(parseFloat(msg.ts) * 1000).toLocaleString(),
+    replyCount: msg.reply_count || 0,
+    threadTs: msg.thread_ts || null,
   }));
 }
 

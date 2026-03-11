@@ -8,6 +8,7 @@ const { listChannels } = require('./src/channels');
 const { login } = require('./src/auth');
 const { getMentions } = require('./src/mentions');
 const { markAllRead } = require('./src/markread');
+const { replyToMessage, readThread } = require('./src/reply');
 
 const { execFileSync } = require('child_process');
 const path = require('path');
@@ -73,8 +74,47 @@ program
       }
       console.log(`\n📨 Last ${messages.length} messages from #${channel}:\n`);
       messages.reverse().forEach((msg) => {
-        console.log(`[${msg.ts}] ${msg.user}`);
+        const thread = msg.replyCount > 0 ? ` \x1b[33m[🧵 ${msg.replyCount} replies]\x1b[0m` : '';
+        console.log(`\x1b[2m[${msg.displayTs}]\x1b[0m \x1b[1m${msg.user}\x1b[0m  \x1b[2mts:${msg.ts}\x1b[0m${thread}`);
         console.log(`  ${msg.text}\n`);
+      });
+    } catch (err) {
+      console.error(`❌ Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('reply <channel> <ts> <message>')
+  .description('Reply to a message in a thread (use ts shown in read output)')
+  .action(async (channel, ts, message) => {
+    try {
+      const channelId = await resolveChannelId(channel);
+      await replyToMessage(channelId, ts, message);
+      console.log(`✅ Reply sent to thread ${ts}`);
+    } catch (err) {
+      console.error(`❌ Error: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('thread <channel> <ts>')
+  .description('Read a full thread by message ts')
+  .option('-l, --limit <number>', 'Number of replies to fetch', '50')
+  .action(async (channel, ts, options) => {
+    try {
+      const channelId = await resolveChannelId(channel);
+      const messages = await readThread(channelId, ts, parseInt(options.limit, 10));
+      if (messages.length === 0) {
+        console.log('No messages in thread.');
+        return;
+      }
+      console.log(`\n🧵 Thread (${messages.length} messages):\n`);
+      messages.forEach((msg) => {
+        const label = msg.isParent ? '\x1b[1m[parent]\x1b[0m' : '  └─';
+        console.log(`${label} \x1b[2m[${msg.displayTs}]\x1b[0m \x1b[1m${msg.user}\x1b[0m  \x1b[2mts:${msg.ts}\x1b[0m`);
+        console.log(`${msg.isParent ? '' : '     '}${msg.text}\n`);
       });
     } catch (err) {
       console.error(`❌ Error: ${err.message}`);
