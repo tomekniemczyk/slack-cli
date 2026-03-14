@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Extract Slack xoxc token and d cookie from the Slack desktop app.
-Writes SLACK_TOKEN and SLACK_COOKIE_D to .env file.
+Writes SLACK_TOKEN and SLACK_COOKIE_D to ~/.slack-cli/.env file.
 """
 import sys, re, os, sqlite3, base64, hashlib
 
@@ -81,7 +81,8 @@ def extract_d_cookie(key_raw):
     return val[idx:] if idx >= 0 else None
 
 def write_env(token, cookie_d):
-    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    env_path = os.environ.get('SLACKCLI_ENV_PATH', os.path.expanduser('~/.slack-cli/.env'))
+    os.makedirs(os.path.dirname(env_path), exist_ok=True)
     content = ''
     if os.path.exists(env_path):
         content = open(env_path).read()
@@ -95,6 +96,7 @@ def write_env(token, cookie_d):
     content = set_var(content, 'SLACK_TOKEN', token)
     content = set_var(content, 'SLACK_COOKIE_D', cookie_d)
     open(env_path, 'w').write(content)
+    os.chmod(env_path, 0o600)
     print(f"  Written to {env_path}")
 
 if __name__ == '__main__':

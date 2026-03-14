@@ -18,6 +18,8 @@ mkdir -p "$INSTALL_DIR"
 # 3. Create wrapper script
 cat > "$WRAPPER" << EOF
 #!/usr/bin/env bash
+set -e
+cd "$REPO_DIR"
 exec node "$REPO_DIR/index.js" "\$@"
 EOF
 chmod +x "$WRAPPER"

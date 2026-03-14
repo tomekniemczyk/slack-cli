@@ -1,10 +1,12 @@
 'use strict';
 
-require('dotenv').config();
 const https = require('https');
 const fs = require('fs');
-const path = require('path');
 const { URLSearchParams } = require('url');
+const { loadSlackEnv, getEnvPath, ensureConfigDir } = require('./config');
+
+const loadedEnvPath = loadSlackEnv();
+const ENV_PATH = getEnvPath();
 
 const PORT = 3000;
 const REDIRECT_URI = `https://localhost:${PORT}/callback`;
@@ -35,7 +37,8 @@ function generateCert() {
 }
 
 function writeTokenToEnv(token) {
-  const envPath = path.resolve(process.cwd(), '.env');
+  ensureConfigDir();
+  const envPath = ENV_PATH;
   let content = '';
   if (fs.existsSync(envPath)) {
     content = fs.readFileSync(envPath, 'utf8');
@@ -48,6 +51,7 @@ function writeTokenToEnv(token) {
   }
 
   fs.writeFileSync(envPath, content);
+  fs.chmodSync(envPath, 0o600);
 }
 
 async function exchangeCodeForToken(code, clientId, clientSecret) {
@@ -97,8 +101,9 @@ async function login() {
   const clientSecret = process.env.SLACK_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    console.error('❌ Brak SLACK_CLIENT_ID lub SLACK_CLIENT_SECRET w .env');
+    console.error(`❌ Brak SLACK_CLIENT_ID lub SLACK_CLIENT_SECRET w ${loadedEnvPath || ENV_PATH}`);
     console.error('   Skopiuj te wartości z https://api.slack.com/apps → Basic Information');
+    console.error(`   Możesz zapisać je w: ${ENV_PATH}`);
     process.exit(1);
   }
 
@@ -145,7 +150,7 @@ async function login() {
         res.end(`
           <html><body style="font-family:sans-serif;padding:2em;text-align:center">
             <h2>✅ Zalogowano pomyślnie!</h2>
-            <p>Token zapisany do <code>.env</code>.</p>
+            <p>Token zapisany do <code>${envPathForHtml()}</code>.</p>
             <p>Możesz zamknąć to okno i wrócić do terminala.</p>
           </body></html>
         `);
@@ -182,6 +187,10 @@ async function login() {
       reject(err);
     });
   });
+}
+
+function envPathForHtml() {
+  return ENV_PATH.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 module.exports = { login };

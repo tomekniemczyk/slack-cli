@@ -40,7 +40,7 @@ Make sure Slack desktop app is running and logged in, then:
 slackcli import-desktop-token
 ```
 
-This automatically extracts the session token and saves it to `.env`.
+This automatically extracts the session token and saves it to `~/.slack-cli/.env`.
 
 > **Note:** Token expires when Slack refreshes its session. Re-run `import-desktop-token` if you get auth errors.
 
@@ -49,7 +49,7 @@ This automatically extracts the session token and saves it to `.env`.
 1. Create a Slack App at https://api.slack.com/apps
 2. Add **User Token Scopes**: `channels:history`, `channels:read`, `channels:write`, `chat:write`, `groups:history`, `groups:read`, `groups:write`, `im:history`, `im:read`, `im:write`, `mpim:history`, `mpim:read`, `mpim:write`, `search:read`, `users:read`
 3. Set Redirect URL to: `https://localhost:3000/callback`
-4. Copy **Client ID** and **Client Secret** to `.env`:
+4. Copy **Client ID** and **Client Secret** to `~/.slack-cli/.env`:
    ```
    SLACK_CLIENT_ID=xxx
    SLACK_CLIENT_SECRET=yyy
@@ -84,7 +84,7 @@ slackcli mark-read
 
 ## Environment variables
 
-Create a `.env` file (see `.env.example`):
+Create `~/.slack-cli/.env` (see `.env.example`):
 
 ```env
 # Filled automatically by import-desktop-token or login:
@@ -96,7 +96,7 @@ SLACK_CLIENT_ID=
 SLACK_CLIENT_SECRET=
 ```
 
-> `.env` is gitignored and will never be committed.
+> Auth config lives outside the repo in `~/.slack-cli/.env`.
 
 ## How it works
 

@@ -11,6 +11,7 @@ const { markAllRead } = require('./src/markread');
 const { replyToMessage, readThread } = require('./src/reply');
 const { startDaemon } = require('./src/daemon');
 const { loadHistory } = require('./src/agent');
+const { getEnvPath } = require('./src/config');
 
 const { execFileSync } = require('child_process');
 const path = require('path');
@@ -24,11 +25,14 @@ program
 
 program
   .command('import-desktop-token')
-  .description('Extract token from Slack desktop app and save to .env (no admin approval needed)')
+  .description('Extract token from Slack desktop app and save to ~/.slack-cli/.env')
   .action(() => {
     try {
       const script = path.join(__dirname, 'src', 'extract_desktop_token.py');
-      execFileSync('python3', [script], { stdio: 'inherit' });
+      execFileSync('python3', [script], {
+        stdio: 'inherit',
+        env: { ...process.env, SLACKCLI_ENV_PATH: getEnvPath() },
+      });
     } catch (err) {
       console.error(`❌ Failed: ${err.message}`);
       process.exit(1);
@@ -37,11 +41,11 @@ program
 
 program
   .command('login')
-  .description('Authenticate with Slack via browser (OAuth 2.0) and save token to .env')
+  .description('Authenticate with Slack via browser (OAuth 2.0) and save token to ~/.slack-cli/.env')
   .action(async () => {
     try {
       await login();
-      console.log('✅ Token zapisany do .env — możesz teraz używać send/read/channels');
+      console.log(`✅ Token zapisany do ${getEnvPath()} — możesz teraz używać send/read/channels`);
     } catch (err) {
       console.error(`❌ Logowanie nieudane: ${err.message}`);
       process.exit(1);

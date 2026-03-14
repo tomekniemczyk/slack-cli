@@ -62,7 +62,7 @@ slackcli import-desktop-token
 Skrypt automatycznie:
 1. Czyta token `xoxc-` z LevelDB Slacka (`~/.config/Slack/Local Storage/`)
 2. Odszyfrowuje cookie `d` (sesji) używając klucza AES z systemowego keyringa
-3. Zapisuje `SLACK_TOKEN` i `SLACK_COOKIE_D` do pliku `.env`
+3. Zapisuje `SLACK_TOKEN` i `SLACK_COOKIE_D` do pliku `~/.slack-cli/.env`
 
 > ⚠️ Token wygasa gdy Slack odświeży sesję (zazwyczaj co kilka tygodni).  
 > Przy błędzie `invalid_auth` uruchom ponownie `import-desktop-token`.
@@ -81,7 +81,7 @@ Wymaga jednorazowej konfiguracji Slack App:
    - `search:read`, `users:read`
 3. **OAuth & Permissions** → Redirect URLs → dodaj: `https://localhost:3000/callback`
 4. **Basic Information** → skopiuj **Client ID** i **Client Secret**
-5. Utwórz `.env`:
+5. Utwórz `~/.slack-cli/.env`:
    ```
    SLACK_CLIENT_ID=twój-client-id
    SLACK_CLIENT_SECRET=twój-client-secret
@@ -95,7 +95,7 @@ Wymaga jednorazowej konfiguracji Slack App:
    > ⚠️ Przeglądarka pokaże ostrzeżenie o certyfikacie (self-signed na localhost).  
    > Kliknij „Zaawansowane" → „Przejdź dalej do localhost" — to bezpieczne.
 
-### Plik .env
+### Plik `~/.slack-cli/.env`
 
 ```env
 # Wypełniane automatycznie przez import-desktop-token lub login:
@@ -107,7 +107,7 @@ SLACK_CLIENT_ID=
 SLACK_CLIENT_SECRET=
 ```
 
-> `.env` jest w `.gitignore` i nigdy nie zostanie commitowany.
+> Konfiguracja jest poza repo (`~/.slack-cli/.env`), więc nie trafi do commita.
 
 ---
 
@@ -115,7 +115,7 @@ SLACK_CLIENT_SECRET=
 
 ### `slackcli import-desktop-token`
 
-Wyciąga token sesji z aplikacji Slack desktop i zapisuje do `.env`.
+Wyciąga token sesji z aplikacji Slack desktop i zapisuje do `~/.slack-cli/.env`.
 
 ```bash
 slackcli import-desktop-token
@@ -127,13 +127,13 @@ slackcli import-desktop-token
 - Przeszukuje `~/.config/Slack/Local Storage/leveldb/*.ldb` w poszukiwaniu tokenu `xoxc-`
 - Odczytuje klucz szyfrowania AES z systemowego keyringa (`org.freedesktop.secrets`)
 - Odszyfrowuje cookie `d` z `~/.config/Slack/Cookies`
-- Zapisuje do `.env`
+- Zapisuje do `~/.slack-cli/.env`
 
 ---
 
 ### `slackcli login`
 
-Autentykacja przez przeglądarkę (OAuth 2.0). Wymaga skonfigurowanej Slack App z `SLACK_CLIENT_ID` i `SLACK_CLIENT_SECRET` w `.env`.
+Autentykacja przez przeglądarkę (OAuth 2.0). Wymaga skonfigurowanej Slack App z `SLACK_CLIENT_ID` i `SLACK_CLIENT_SECRET` w `~/.slack-cli/.env`.
 
 ```bash
 slackcli login
@@ -142,7 +142,7 @@ slackcli login
 **Flow:**
 1. Startuje lokalny HTTPS serwer na `https://localhost:3000`
 2. Otwiera przeglądarkę z URL autoryzacji Slack
-3. Po kliknięciu Allow — zapisuje token do `.env`
+3. Po kliknięciu Allow — zapisuje token do `~/.slack-cli/.env`
 
 ---
 
@@ -333,9 +333,17 @@ slack-cli/
 │   ├── mentions.js             # Wzmianki (search.messages)
 │   ├── markread.js             # Mark all read (conversations.mark)
 │   └── extract_desktop_token.py  # Python: wyciąga token z Slack desktop
-├── .env                        # 🔒 gitignored — tokeny
-├── .env.example                # Szablon zmiennych środowiskowych
 └── package.json
+```
+
+Plik konfiguracyjny z tokenami:
+```
+~/.slack-cli/.env               # tokeny i sekrety OAuth (poza repo)
+```
+
+Szablon:
+```
+slack-cli/.env.example          # przykład zmiennych środowiskowych
 ```
 
 ### Kluczowe API Slack
